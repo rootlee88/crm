@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users     User[]
+
+  @@map("departments")
+}
+
+model User {
+  id            Int        @id @default(autoincrement())
+  username      String     @unique
+  password      String
+  email         String?
+  realName      String?    @map("real_name")
+  role          String     @default("user")
+  departmentId  Int?       @map("department_id")
+  dataScope     String     @default("self") @map("data_scope")
+  status        Int        @default(1)
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  department    Department? @relation(fields: [departmentId], references: [id])
+  customers     Customer[]
+  leads         Lead[]
+  opportunities Opportunity[]
+  contracts     Contract[]
+  tasksAssigned Task[]     @relation("TaskAssignee")
+  tasksCreated  Task[]     @relation("TaskCreator")
+  activities    Activity[]
+
+  @@map("users")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  company   String?
+  phone     String?
+  email     String?
+  address   String?
+  industry  String?
+  source    String?
+  ownerId   Int?     @map("owner_id")
+  status    Int      @default(1)
+  remark    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner         User?          @relation(fields: [ownerId], references: [id])
+  leads         Lead[]
+  opportunities Opportunity[]
+  contracts     Contract[]
+
+  @@map("customers")
+}
+
+model Lead {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  email     String?
+  company   String?
+  source    String?
+  ownerId   Int?     @map("owner_id")
+  status    Int      @default(1)
+  customerId Int?    @map("customer_id")
+  remark    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner     User?     @relation(fields: [ownerId], references: [id])
+  customer  Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("leads")
+}
+
+model Opportunity {
+  id            Int       @id @default(autoincrement())
+  name          String
+  customerId    Int       @map("customer_id")
+  amount        Float     @default(0)
+  stage         String    @default("prospecting")
+  probability   Int       @default(10)
+  expectedDate  DateTime? @map("expected_date")
+  ownerId       Int?      @map("owner_id")
+  status        Int       @default(1)
+  remark        String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  customer      Customer   @relation(fields: [customerId], references: [id])
+  owner         User?      @relation(fields: [ownerId], references: [id])
+  contracts     Contract[]
+
+  @@map("opportunities")
+}
+
+model Contract {
+  id             Int       @id @default(autoincrement())
+  contractNo     String    @unique @map("contract_no")
+  customerId     Int       @map("customer_id")
+  opportunityId  Int?      @map("opportunity_id")
+  amount         Float     @default(0)
+  signDate       DateTime? @map("sign_date")
+  startDate      DateTime? @map("start_date")
+  endDate        DateTime? @map("end_date")
+  status         Int       @default(1)
+  fileUrl        String?   @map("file_url")
+  remark         String?
+  createdBy      Int?      @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  customer       Customer   @relation(fields: [customerId], references: [id])
+  opportunity    Opportunity? @relation(fields: [opportunityId], references: [id])
+  creator        User?      @relation(fields: [createdBy], references: [id])
+
+  @@map("contracts")
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String?
+  type        String    @default("general")
+  priority    Int       @default(2)
+  dueDate     DateTime? @map("due_date")
+  assigneeId  Int?      @map("assignee_id")
+  ownerId     Int?      @map("owner_id")
+  relatedType String?   @map("related_type")
+  relatedId   Int?      @map("related_id")
+  status      Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator     User?     @relation("TaskCreator", fields: [ownerId], references: [id])
+
+  @@map("tasks")
+}
+
+model Activity {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  type        String
+  action      String
+  targetType  String?   @map("target_type")
+  targetId    Int?      @map("target_id")
+  content     String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("activities")
+}
